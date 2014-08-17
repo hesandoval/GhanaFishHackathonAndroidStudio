@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.Menu;
@@ -95,6 +96,7 @@ public class PictureTaker extends Activity {
         sendReportButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                if ( )
                 sendIncidentReport();
             }
         });
@@ -124,19 +126,16 @@ public class PictureTaker extends Activity {
                 try {
 
                     HttpPost post = new HttpPost("http://192.168.1.111:8000/incident_report/report/");
-
                     MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
                     entityBuilder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
                     if (f != null){
                         entityBuilder.addBinaryBody(PHOTOGRAPH, f);
                     }
-
                     entityBuilder.addTextBody(LONGITUDE, "" + longitude);
                     entityBuilder.addTextBody(LATITUDE, "" + latitude);
                     entityBuilder.addTextBody(DESCRIPTION, descriptionEditText.getText().toString());
                     HttpEntity entity = entityBuilder.build();
                     post.setEntity(entity);
-
                     client.execute(post);
 
                 } catch (Exception e) {
@@ -157,19 +156,7 @@ public class PictureTaker extends Activity {
             if (resultCode == RESULT_OK){
                 try {
                     photograph = MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData());
-                    Cursor cursor = null;
-                    try {
-                        String[] proj = { MediaStore.Images.Media.DATA };
-                        cursor = this.getContentResolver().query(data.getData(),  proj, null, null, null);
-                        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                        cursor.moveToFirst();
-                        f = new File(cursor.getString(column_index));
-                    } finally {
-                        if (cursor != null) {
-                            cursor.close();
-                        }
-                    }
-
+                    f = new File(getPicturePath(data.getData()));
                     Matrix matrix = new Matrix();
                     matrix.postRotate(90);
                     Bitmap pictureForImageView = Bitmap.createScaledBitmap(photograph, pictureLinearLayout.getWidth(), pictureLinearLayout.getHeight(), false);
@@ -183,6 +170,20 @@ public class PictureTaker extends Activity {
                 longitude = location.getLongitude();
                 latitudeEditText.setText(""+latitude);
                 longitudeEditText.setText(""+longitude);
+            }
+        }
+    }
+    public String getPicturePath(Uri uri){
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = this.getContentResolver().query(uri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
             }
         }
     }
